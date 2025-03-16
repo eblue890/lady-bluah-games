@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Echo - A Simon Says Twist</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #fff;
+        }
+        h1 {
+            font-size: 2.2em; /* Scaled from 3em */
+            color: #ff007f;
+            margin-bottom: 8px; /* Scaled from 10px */
+            text-shadow: 0 0 5px #00ffcc;
+        }
+        #score {
+            font-size: 1.1em; /* Scaled from 1.5em */
+            color: #00ffcc;
+            margin-bottom: 15px; /* Scaled from 20px */
+            text-shadow: 0 0 5px #ff007f;
+        }
+        #game-area {
+            display: flex;
+            justify-content: space-between;
+            margin: 30px 0; /* Scaled from 40px */
+            width: 520px; /* Scaled from 700px to fit within 590px */
+            max-width: 90%;
+        }
+        .emoji-box {
+            width: 74px; /* Scaled from 100px */
+            height: 74px; /* Scaled from 100px */
+            background-color: #e0e0e0;
+            border-radius: 8px; /* Scaled from 10px */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.2em; /* Scaled from 3em */
+            transition: background-color 0.3s;
+            box-shadow: 0 0 8px #ff007f; /* Scaled from 10px */
+        }
+        .emoji-box.active {
+            background-color: #ffd700;
+            box-shadow: 0 0 12px #00ffcc; /* Scaled from 15px */
+        }
+        .emoji-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 8px; /* Scaled from 10px */
+        }
+        .key-label {
+            margin-top: 8px; /* Scaled from 10px */
+            font-size: 0.9em; /* Scaled from 1.2em */
+            color: #fff;
+            text-shadow: 0 0 5px #ff007f;
+        }
+        #message {
+            font-size: 1.1em; /* Scaled from 1.5em */
+            margin: 15px 0; /* Scaled from 20px */
+            min-height: 1.1em;
+            color: #fff;
+            text-shadow: 0 0 5px #00ffcc;
+        }
+        button {
+            padding: 11px 22px; /* Scaled from 15px 30px */
+            font-size: 0.9em; /* Scaled from 1.2em */
+            background-color: #ff007f;
+            color: #fff;
+            border: 2px solid #00ffcc;
+            border-radius: 5px;
+            cursor: pointer;
+            text-shadow: 0 0 5px #00ffcc;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background-color: #00ffcc;
+            color: #ff007f;
+            text-shadow: 0 0 5px #ff007f;
+            box-shadow: 0 0 10px #00ffcc;
+        }
+        #restart-btn {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="arcade-game" id="game-container">
+        <h1>Emoji Echo</h1>
+        <div id="score">Score: 0</div>
+        <div id="game-area">
+            <div class="emoji-container">
+                <div class="emoji-box" id="box-w">😺</div>
+                <div class="key-label">W</div>
+            </div>
+            <div class="emoji-container">
+                <div class="emoji-box" id="box-a">🌟</div>
+                <div class="key-label">A</div>
+            </div>
+            <div class="emoji-container">
+                <div class="emoji-box" id="box-s">🍎</div>
+                <div class="key-label">S</div>
+            </div>
+            <div class="emoji-container">
+                <div class="emoji-box" id="box-d">🚀</div>
+                <div class="key-label">D</div>
+            </div>
+        </div>
+        <div id="message">Press Start to begin!</div>
+        <button id="start-btn">Start</button>
+        <button id="restart-btn">Restart</button>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const scoreDisplay = document.getElementById('score');
+        const messageDisplay = document.getElementById('message');
+        const boxes = {
+            w: document.getElementById('box-w'),
+            a: document.getElementById('box-a'),
+            s: document.getElementById('box-s'),
+            d: document.getElementById('box-d')
+        };
+
+        const keys = ['w', 'a', 's', 'd'];
+        let sequence = [];
+        let playerSequence = [];
+        let score = 0;
+        let isPlayerTurn = false;
+
+        // Web Audio API setup
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const soundFrequencies = {
+            w: 261.63, // C4 - soft chime-like tone for 😺
+            a: 329.63, // E4 - bright note for 🌟
+            s: 392.00, // G4 - warm tone for 🍎
+            d: 523.25  // C5 - higher chime for 🚀
+        };
+
+        function playSound(key) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(soundFrequencies[key], audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.currentTime ? audioContext.destination : audioContext.destination);
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.4);
+        }
+
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', resetGame);
+        document.addEventListener('keydown', handleInput);
+
+        function startGame() {
+            startBtn.style.display = 'none';
+            score = 0;
+            updateScore();
+            sequence = [];
+            playerSequence = [];
+            nextRound();
+        }
+
+        function nextRound() {
+            isPlayerTurn = false;
+            messageDisplay.textContent = 'Watch the sequence!';
+            sequence.push(keys[Math.floor(Math.random() * keys.length)]);
+            playSequence();
+        }
+
+        function playSequence() {
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i >= sequence.length) {
+                    clearInterval(interval);
+                    startPlayerTurn();
+                    return;
+                }
+                highlightBox(sequence[i]);
+                playSound(sequence[i]);
+                i++;
+            }, 800);
+        }
+
+        function highlightBox(key) {
+            const box = boxes[key];
+            box.classList.add('active');
+            setTimeout(() => box.classList.remove('active'), 400);
+        }
+
+        function startPlayerTurn() {
+            isPlayerTurn = true;
+            playerSequence = [];
+            messageDisplay.textContent = 'Your turn! Use WASD.';
+        }
+
+        function handleInput(event) {
+            if (!isPlayerTurn) return;
+            const key = event.key.toLowerCase();
+            if (!keys.includes(key)) return;
+
+            highlightBox(key);
+            playSound(key);
+            playerSequence.push(key);
+
+            if (playerSequence[playerSequence.length - 1] !== sequence[playerSequence.length - 1]) {
+                gameOver();
+                return;
+            }
+
+            if (playerSequence.length === sequence.length) {
+                score += sequence.length * 10;
+                updateScore();
+                setTimeout(nextRound, 1000);
+            }
+        }
+
+        function updateScore() {
+            scoreDisplay.textContent = `Score: ${score}`;
+        }
+
+        function gameOver() {
+            isPlayerTurn = false;
+            messageDisplay.textContent = 'Game Over! Wrong move.';
+            restartBtn.style.display = 'inline-block';
+        }
+
+        function resetGame() {
+            restartBtn.style.display = 'none';
+            startBtn.style.display = 'inline-block';
+            messageDisplay.textContent = 'Press Start to begin!';
+            score = 0;
+            updateScore();
+        }
+    </script>
+</body>
+</html>

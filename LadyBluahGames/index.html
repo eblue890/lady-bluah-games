@@ -4,52 +4,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lady Bluah Games</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #1a1a1a;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            padding: 50px;
-            background-color: #2e2e8e;
-        }
-        h1 {
-            font-size: 48px;
-            margin: 0;
-            text-shadow: 2px 2px 4px #00ffff;
-        }
-        .container {
-            padding: 20px;
-        }
-        .button {
-            display: inline-block;
-            padding: 15px 30px;
-            margin: 10px;
-            background-color: #ff00ff;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 5px;
-            font-size: 18px;
-        }
-        .button:hover {
-            background-color: #00ffff;
-            color: #000;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
-        <h1>Lady Bluah Games</h1>
-    </header>
     <div class="container">
-        <p>Welcome to retro arcade fun! Games coming soon.</p>
-        <a href="#" class="button">Play Games (Soon)</a>
-        <a href="#" class="button">About</a>
-        <a href="#" class="button">Contact</a>
+        <h1 class="header">Lady Bluah Games</h1>
+
+        <!-- WebGL Builds Section -->
+        <div class="section-wrapper">
+            <div class="section">
+                <h2 style="color: #ff00ff; text-shadow: 0 0 5px #00ffff;">WebGL Builds</h2>
+                <div class="webgl-grid">
+                    <div class="webgl-placeholder">[WebGL Build 1 Placeholder]</div>
+                    <div class="webgl-placeholder">[WebGL Build 2 Placeholder]</div>
+                    <div class="webgl-placeholder">[WebGL Build 3 Placeholder]</div>
+                </div>
+                <a href="webgl-builds.html" class="button">See All WebGL Builds</a>
+            </div>
+        </div>
+
+        <!-- Featured AI Game Section -->
+        <div class="section-wrapper">
+            <div class="section">
+                <h2 style="color: #00ffff; text-shadow: 0 0 5px #ff00ff;">Featured AI Game</h2>
+                <div class="game-wrapper">
+                    <div class="featured-game" id="featuredGame">
+                        <!-- Iframe will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+            <div class="game-buttons" id="gameButtons">
+                <!-- Buttons will be dynamically inserted here -->
+            </div>
+        </div>
     </div>
+
+    <script>
+        // List of AI Arcade games with display names
+        const aiGames = [
+            { file: 'slot.html', name: 'Slot Machine' },
+            { file: 'brickbreak.html', name: 'Brick Break' },
+            { file: 'astro.html', name: 'Astro Adventure' },
+            { file: 'dodge.html', name: 'Dodge' },
+            { file: 'random.html', name: 'Random Game' },
+            { file: 'kaboom.html', name: 'Kaboom' },
+            { file: 'invaders.html', name: 'Invaders' },
+            { file: 'simonsays.html', name: 'Simon Says' },
+            { file: 'snake.html', name: 'Snake' },
+            { file: 'catchem.html', name: 'Catch Em' } // Added Catch 'Em
+        ];
+
+        // Function to load a game into the iframe
+        function loadGame(gameFile) {
+            const featuredGameDiv = document.getElementById('featuredGame');
+            featuredGameDiv.innerHTML = ''; // Clear existing iframe
+            const iframe = document.createElement('iframe');
+            iframe.src = `AIArcade/${gameFile}`;
+            iframe.className = 'arcade-game';
+            iframe.style.border = 'none';
+            featuredGameDiv.appendChild(iframe);
+        }
+
+        // Randomly select a game on page load
+        const randomGame = aiGames[Math.floor(Math.random() * aiGames.length)];
+        loadGame(randomGame.file);
+
+        // Create game buttons
+        const gameButtonsDiv = document.getElementById('gameButtons');
+        aiGames.forEach(game => {
+            const button = document.createElement('button');
+            button.textContent = game.name;
+            button.className = 'game-button';
+            button.addEventListener('click', () => loadGame(game.file));
+            gameButtonsDiv.appendChild(button);
+        });
+    </script>
 </body>
 </html>

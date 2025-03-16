@@ -1,0 +1,162 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #1a1a2e; /* Darker blue from Cosmic Courier */
+    font-family: 'Courier New', Courier, monospace;
+    color: #fff;
+    overflow-x: hidden; /* Keep horizontal overflow hidden */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column; /* Allow vertical stacking of content */
+    align-items: center;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px; /* Retain padding for overall layout spacing */
+    text-align: center;
+    width: 100%; /* Allow container to adapt to content */
+    box-sizing: border-box; /* Include padding in width/height calculations */
+}
+
+.header {
+    background: linear-gradient(90deg, #ff007f, #00ffcc); /* Pink to cyan gradient */
+    -webkit-background-clip: text;
+    color: transparent;
+    font-size: 4em;
+    text-shadow: 0 0 10px #ff007f, 0 0 20px #00ffcc;
+    margin-bottom: 40px;
+    animation: neon-flicker 1.5s infinite alternate;
+}
+
+.section-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    position: relative;
+    width: 100%;
+    max-width: 740px; /* Match the section width */
+    margin: 0 auto; /* Center the wrapper */
+    margin-bottom: 40px; /* Space between sections */
+}
+
+.section {
+    margin: 0;
+    padding: 20px;
+    border: 2px solid #ff007f;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 15px #00ffcc;
+    width: 740px; /* Match the game width plus padding */
+    box-sizing: border-box;
+}
+
+.button {
+    display: inline-block;
+    padding: 15px 30px;
+    margin: 10px;
+    background-color: #ff007f;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.2em;
+    border: 2px solid #00ffcc;
+    border-radius: 5px;
+    text-shadow: 0 0 5px #00ffcc;
+    transition: all 0.3s ease;
+}
+
+.button:hover {
+    background-color: #00ffcc;
+    color: #ff007f;
+    text-shadow: 0 0 5px #ff007f;
+    box-shadow: 0 0 10px #00ffcc;
+}
+
+.game-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.featured-game {
+    margin: 0 auto;
+    width: 700px;
+    height: 700px;
+    border: 4px solid #ff007f;
+    box-shadow: 0 0 20px #ff007f;
+    overflow: hidden;
+    background: #0f0f23;
+    position: relative;
+}
+
+.arcade-game {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background-color: #0f0f23;
+    margin: 0;
+    overflow: hidden;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.game-buttons {
+    position: absolute;
+    left: calc(740px + 40px); /* Position to the right of the section with a gap (section width + 20px padding on each side) */
+    top: 0; /* Align with the top of the section-wrapper */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 700px; /* Match the game height to avoid overflow */
+    overflow-y: auto; /* Add scroll if buttons exceed height */
+    padding: 10px 0;
+}
+
+.game-button {
+    padding: 10px 20px;
+    background-color: #ff007f;
+    color: #fff;
+    border: 2px solid #00ffcc;
+    border-radius: 5px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1em;
+    text-shadow: 0 0 5px #00ffcc;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 150px; /* Fixed width for consistency */
+    text-align: left; /* Align text to left for better readability */
+}
+
+.game-button:hover {
+    background-color: #00ffcc;
+    color: #ff007f;
+    text-shadow: 0 0 5px #ff007f;
+    box-shadow: 0 0 10px #00ffcc;
+}
+
+.webgl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.webgl-placeholder {
+    height: 200px;
+    background: rgba(255, 0, 127, 0.1); /* Pinkish tint */
+    border: 2px dashed #00ffcc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #fff;
+    text-shadow: 0 0 5px #ff007f;
+}
+
+@keyframes neon-flicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
