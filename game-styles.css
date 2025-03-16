@@ -1,0 +1,79 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #1a1a2e;
+    font-family: 'Courier New', Courier, monospace;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.game-container {
+    text-align: center;
+    padding: 20px;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.game-title {
+    background: linear-gradient(90deg, #ff007f, #00ffcc);
+    -webkit-background-clip: text;
+    color: transparent;
+    font-size: 3em;
+    text-shadow: 0 0 10px #ff007f, 0 0 20px #00ffcc;
+    margin-bottom: 20px;
+}
+
+.game-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.unity-game {
+    border: 4px solid #ff007f;
+    box-shadow: 0 0 20px #ff007f;
+    background: #0f0f23;
+    transition: all 0.3s ease;
+}
+
+.game-controls {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.control-button {
+    padding: 10px 20px;
+    background-color: #ff007f;
+    color: #fff;
+    border: 2px solid #00ffcc;
+    border-radius: 5px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1em;
+    text-shadow: 0 0 5px #00ffcc;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.control-button:hover {
+    background-color: #00ffcc;
+    color: #ff007f;
+    text-shadow: 0 0 5px #ff007f;
+    box-shadow: 0 0 10px #00ffcc;
+}
+
+:fullscreen .game-wrapper {
+    width: 100%;
+    height: 100%;
+}

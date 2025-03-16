@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cosmo-Muncher</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Minimal inline styles for specific elements */
+        #score-board {
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 0 5px #ff007f;
+        }
+        #restart-btn {
+            display: none;
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            background: #ff007f;
+            color: #fff;
+            border: 2px solid #00ffcc;
+            border-radius: 5px;
+            cursor: pointer;
+            text-shadow: 0 0 5px #00ffcc;
+            transition: all 0.3s ease;
+        }
+        #restart-btn:hover {
+            background: #00ffcc;
+            color: #ff007f;
+            text-shadow: 0 0 5px #ff007f;
+            box-shadow: 0 0 10px #00ffcc;
+        }
+    </style>
+</head>
+<body>
+    <div class="arcade-game">
+        <div id="score-board">Stardust: 0</div>
+        <canvas id="canvas" width="590" height="590"></canvas>
+        <button id="restart-btn" onclick="restartGame()">Restart</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 29.5; // Adjusted from 40 (590 / 20 tiles = 29.5)
+        const tileCount = Math.floor(canvas.width / gridSize); // Still ~20 tiles
+
+        let astronaut = { x: 10, y: 10 };
+        let stars = [];
+        let blackHoles = [];
+        let stardust = 0;
+        let gameOver = false;
+        let direction = { x: 0, y: 0 };
+
+        // Check if position is occupied
+        function isPositionOccupied(x, y, excludeAstronaut = false) {
+            if (!excludeAstronaut && x === astronaut.x && y === astronaut.y) return true;
+            if (stars.some(star => star.x === x && star.y === y)) return true;
+            if (blackHoles.some(hole => hole.x === x && hole.y === y)) return true;
+            return false;
+        }
+
+        // Get random unoccupied position
+        function getRandomPosition(excludeAstronaut = false) {
+            let x, y;
+            do {
+                x = Math.floor(Math.random() * tileCount);
+                y = Math.floor(Math.random() * tileCount);
+            } while (isPositionOccupied(x, y, excludeAstronaut));
+            return { x, y };
+        }
+
+        // Initialize game
+        function initGame() {
+            stars = [];
+            blackHoles = [];
+            stardust = 0;
+            gameOver = false;
+            astronaut = { x: 10, y: 10 };
+            direction = { x: 0, y: 0 };
+            document.getElementById('restart-btn').style.display = 'none';
+            spawnStars(20);
+            spawnBlackHoles(5);
+            updateScore();
+            gameLoop();
+        }
+
+        // Spawn stars
+        function spawnStars(count) {
+            for (let i = 0; i < count; i++) {
+                stars.push(getRandomPosition());
+            }
+        }
+
+        // Spawn black holes
+        function spawnBlackHoles(count) {
+            for (let i = 0; i < count; i++) {
+                blackHoles.push(getRandomPosition());
+            }
+        }
+
+        // Game loop
+        function gameLoop() {
+            if (!gameOver) {
+                update();
+                draw();
+                setTimeout(gameLoop, 100);
+            }
+        }
+
+        // Update game state
+        function update() {
+            // Move astronaut
+            astronaut.x = (astronaut.x + direction.x + tileCount) % tileCount;
+            astronaut.y = (astronaut.y + direction.y + tileCount) % tileCount;
+
+            // Check star collision
+            stars = stars.filter(star => {
+                if (astronaut.x === star.x && astronaut.y === star.y) {
+                    stardust += 10;
+                    updateScore();
+                    return false;
+                }
+                return true;
+            });
+
+            // Check black hole collision
+            blackHoles.forEach(hole => {
+                if (astronaut.x === hole.x && astronaut.y === hole.y) {
+                    gameOver = true;
+                    document.getElementById('restart-btn').style.display = 'block';
+                }
+            });
+
+            // Spawn new stars if all collected
+            if (stars.length === 0) {
+                spawnStars(20);
+            }
+        }
+
+        // Draw game
+        function draw() {
+            ctx.fillStyle = '#0f0f23'; // Match .arcade-game background
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw stars
+            ctx.font = '29px Arial'; // Scaled down from 40px proportional to canvas
+            stars.forEach(star => {
+                ctx.fillText('⭐', star.x * gridSize, (star.y + 1) * gridSize);
+            });
+
+            // Draw black holes
+            blackHoles.forEach(hole => {
+                ctx.fillText('🕳️', hole.x * gridSize, (hole.y + 1) * gridSize);
+            });
+
+            // Draw astronaut
+            ctx.fillText('👨‍🚀', astronaut.x * gridSize, (astronaut.y + 1) * gridSize);
+        }
+
+        // Update score
+        function updateScore() {
+            document.getElementById('score-board').textContent = `Stardust: ${stardust}`;
+        }
+
+        // Restart game
+        function restartGame() {
+            initGame();
+        }
+
+        // Handle keyboard input
+        document.addEventListener('keydown', (e) => {
+            switch (e.key.toLowerCase()) {
+                case 'w':
+                    direction = { x: 0, y: -1 };
+                    break;
+                case 's':
+                    direction = { x: 0, y: 1 };
+                    break;
+                case 'a':
+                    direction = { x: -1, y: 0 };
+                    break;
+                case 'd':
+                    direction = { x: 1, y: 0 };
+                    break;
+            }
+        });
+
+        // Start game
+        initGame();
+    </script>
+</body>
+</html>

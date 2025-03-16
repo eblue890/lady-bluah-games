@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game 1 - Lady Bluah Games</title>
+    <link rel="stylesheet" href="/game-styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">Game 1</h1>
+        <div class="game-wrapper">
+            <div id="unityContainer" class="unity-game"></div>
+        </div>
+        <div class="game-controls">
+            <button id="fullscreenButton" class="control-button">Toggle Fullscreen</button>
+            <a href="/" class="control-button">Back to Main Page</a>
+        </div>
+    </div>
+
+    <script src="/Build/Game1.loader.js"></script>
+    <script>
+        const container = document.querySelector("#unityContainer");
+        const gameWrapper = document.querySelector(".game-wrapper");
+        const config = {
+            dataUrl: "/Build/Game1.data",
+            frameworkUrl: "/Build/Game1.framework.js",
+            codeUrl: "/Build/Game1.wasm",
+            streamingAssetsUrl: "/StreamingAssets",
+            companyName: "Lady Bluah Games",
+            productName: "Game 1",
+            productVersion: "1.0",
+        };
+
+        let unityInstance;
+
+        function resizeGame() {
+            const aspectRatio = 960 / 600;
+            let width = window.innerWidth * 0.9;
+            let height = width / aspectRatio;
+            if (height > window.innerHeight * 0.9) {
+                height = window.innerHeight * 0.9;
+                width = height * aspectRatio;
+            }
+            container.style.width = `${width}px`;
+            container.style.height = `${height}px`;
+        }
+
+        createUnityInstance(container, config).then((instance) => {
+            unityInstance = instance;
+            resizeGame();
+
+            const fullscreenButton = document.getElementById("fullscreenButton");
+            fullscreenButton.addEventListener("click", () => {
+                if (!document.fullscreenElement) {
+                    gameWrapper.requestFullscreen().then(resizeGame);
+                } else {
+                    document.exitFullscreen().then(resizeGame);
+                }
+            });
+
+            // Prevent ESC from exiting fullscreen
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape" && document.fullscreenElement) {
+                    e.preventDefault();
+                }
+            });
+        }).catch((error) => {
+            console.error("Error loading Unity game:", error);
+        });
+
+        window.addEventListener("resize", resizeGame);
+    </script>
+</body>
+</html>

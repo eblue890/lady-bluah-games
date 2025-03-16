@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Snake</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            background-color: #1a1a2e;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #score {
+            color: #fff;
+            font-size: 21px; /* Scaled from 28px */
+            margin-bottom: 15px; /* Scaled from 20px */
+            text-shadow: 0 0 5px #ff007f;
+        }
+        #restart-btn {
+            display: none;
+            padding: 11px 22px; /* Scaled from 15px 30px */
+            font-size: 1.1em; /* Scaled from 1.5em */
+            background: #ff007f;
+            color: #fff;
+            border: 2px solid #00ffcc;
+            border-radius: 5px;
+            cursor: pointer;
+            text-shadow: 0 0 5px #00ffcc;
+            transition: all 0.3s ease;
+        }
+        #restart-btn:hover {
+            background: #00ffcc;
+            color: #ff007f;
+            text-shadow: 0 0 5px #ff007f;
+            box-shadow: 0 0 10px #00ffcc;
+        }
+    </style>
+</head>
+<body>
+    <div class="arcade-game" id="game-container">
+        <div id="score">Score: 0</div>
+        <canvas id="game-canvas" width="590" height="590"></canvas>
+        <button id="restart-btn" onclick="restartGame()">Restart</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 29.5; // Scaled from 40 (590 / 20 tiles = 29.5)
+        const tileCount = Math.floor(canvas.width / gridSize); // Still ~20 tiles
+        let snake = [{ x: 10, y: 10 }];
+        let star = { x: 15, y: 15 };
+        let blackHole = { x: 5, y: 5 };
+        let comet = null;
+        let dx = 0;
+        let dy = 0;
+        let score = 0;
+        let reversed = false;
+        let gameOver = false;
+
+        function drawGame() {
+            if (gameOver) return;
+
+            // Move snake
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            snake.unshift(head);
+
+            // Check star collision
+            if (head.x === star.x && head.y === star.y) {
+                score += 10;
+                spawnStar();
+                if (Math.random() < 0.3) spawnComet();
+            } else {
+                snake.pop();
+            }
+
+            // Check comet collision
+            if (comet && head.x === comet.x && head.y === comet.y) {
+                reversed = true;
+                comet = null;
+                setTimeout(() => reversed = false, 5000);
+            }
+
+            // Check collisions
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount ||
+                (head.x === blackHole.x && head.y === blackHole.y) ||
+                snake.slice(1).some(segment => segment.x === head.x && segment.y === head.y)) {
+                endGame();
+                return;
+            }
+
+            // Clear canvas
+            ctx.fillStyle = '#0f0f23';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw snake
+            snake.forEach((segment, index) => {
+                ctx.font = `${gridSize}px Arial`;
+                ctx.fillText(index === 0 ? '🐍' : '🟢', segment.x * gridSize, (segment.y + 1) * gridSize);
+            });
+
+            // Draw star, black hole, and comet
+            ctx.font = `${gridSize}px Arial`;
+            ctx.fillText('⭐', star.x * gridSize, (star.y + 1) * gridSize);
+            ctx.fillText('🕳️', blackHole.x * gridSize, (blackHole.y + 1) * gridSize);
+            if (comet) ctx.fillText('🌠', comet.x * gridSize, (comet.y + 1) * gridSize);
+
+            // Update score
+            document.getElementById('score').textContent = `Score: ${score}`;
+
+            setTimeout(drawGame, 100);
+        }
+
+        function spawnStar() {
+            star = { x: Math.floor(Math.random() * tileCount), y: Math.floor(Math.random() * tileCount) };
+            if (collidesWithSnake(star) || (star.x === blackHole.x && star.y === blackHole.y)) spawnStar();
+        }
+
+        function spawnComet() {
+            comet = { x: Math.floor(Math.random() * tileCount), y: Math.floor(Math.random() * tileCount) };
+            if (collidesWithSnake(comet) || (comet.x === blackHole.x && comet.y === blackHole.y) || (comet.x === star.x && comet.y === star.y)) spawnComet();
+        }
+
+        function collidesWithSnake(obj) {
+            return snake.some(segment => segment.x === obj.x && segment.y === obj.y);
+        }
+
+        function endGame() {
+            gameOver = true;
+            document.getElementById('restart-btn').style.display = 'block';
+        }
+
+        function restartGame() {
+            snake = [{ x: 10, y: 10 }];
+            star = { x: 15, y: 15 };
+            blackHole = { x: 5, y: 5 };
+            comet = null;
+            dx = 0;
+            dy = 0;
+            score = 0;
+            reversed = false;
+            gameOver = false;
+            document.getElementById('restart-btn').style.display = 'none';
+            drawGame();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (gameOver) return;
+            const key = e.key.toLowerCase();
+            const newDx = reversed ? -dx : dx;
+            const newDy = reversed ? -dy : dy;
+
+            if (key === 'w' && newDy !== 1) { dx = 0; dy = reversed ? 1 : -1; }
+            if (key === 's' && newDy !== -1) { dx = 0; dy = reversed ? -1 : 1; }
+            if (key === 'a' && newDx !== 1) { dx = reversed ? 1 : -1; dy = 0; }
+            if (key === 'd' && newDx !== -1) { dx = reversed ? -1 : 1; dy = 0; }
+        });
+
+        drawGame();
+    </script>
+</body>
+</html>

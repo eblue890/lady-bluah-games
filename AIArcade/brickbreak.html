@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cosmo Critters - Brick Breaker Prototype</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e;
+            font-family: 'Courier New', Courier, monospace;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #score {
+            font-size: 20px; /* Scaled down from 24px */
+            margin-bottom: 8px; /* Adjusted */
+            color: #ffd700;
+            text-shadow: 0 0 5px #ff007f;
+            text-align: center;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px; /* Scaled down */
+            border-radius: 8px; /* Adjusted */
+            border: 2px solid #ff007f;
+            box-shadow: 0 0 12px #00ffcc; /* Adjusted */
+            display: none;
+            text-align: center;
+        }
+        #gameOver h2 {
+            margin: 0;
+            color: #ff6f61;
+            text-shadow: 0 0 5px #00ffcc;
+            font-size: 24px; /* Adjusted */
+        }
+        #gameOver p {
+            margin: 8px 0; /* Adjusted */
+            color: #e0e0e0;
+            text-shadow: 0 0 5px #ff007f;
+        }
+        #restartBtn {
+            padding: 8px 16px; /* Scaled down */
+            font-size: 14px; /* Scaled down */
+            background: #ff007f;
+            color: #fff;
+            border: 2px solid #00ffcc;
+            border-radius: 5px;
+            cursor: pointer;
+            text-shadow: 0 0 5px #00ffcc;
+            transition: all 0.3s ease;
+        }
+        #restartBtn:hover {
+            background: #00ffcc;
+            color: #ff007f;
+            text-shadow: 0 0 5px #ff007f;
+            box-shadow: 0 0 10px #00ffcc;
+        }
+    </style>
+</head>
+<body>
+    <div class="arcade-game" id="gameContainer">
+        <div id="score">Stardust: 0</div>
+        <canvas id="gameCanvas" width="590" height="590"></canvas>
+        <div id="gameOver">
+            <h2>Game Over</h2>
+            <p>Final Stardust: <span id="finalScore">0</span></p>
+            <button id="restartBtn">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const gameOverScreen = document.getElementById('gameOver');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const restartBtn = document.getElementById('restartBtn');
+
+        let score = 0;
+        let gameRunning = true;
+
+        // Paddle (Spaceship with critter)
+        const paddle = {
+            x: canvas.width / 2 - 55, // Scaled from 75 (590/800 ratio)
+            y: canvas.height - 45,    // Scaled from 60
+            width: 110,              // Scaled from 150
+            height: 22,              // Scaled from 30
+            speed: 7,                // Scaled from 10
+            dx: 0
+        };
+
+        // Ball (Cosmic Star)
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height - 67,   // Scaled from 90
+            radius: 11,             // Scaled from 15
+            speed: 5,               // Scaled from 7
+            dx: 5,
+            dy: -5
+        };
+
+        // Asteroids (Bricks)
+        const brickRowCount = 5;
+        const brickColumnCount = 8;
+        const brickWidth = 59;      // Scaled from 80
+        const brickHeight = 22;     // Scaled from 30
+        const brickPadding = 11;    // Scaled from 15
+        const brickOffsetTop = 37;  // Scaled from 50
+        const brickOffsetLeft = 44; // Scaled from 60
+        const bricks = [];
+        for (let c = 0; c < brickColumnCount; c++) {
+            bricks[c] = [];
+            for (let r = 0; r < brickRowCount; r++) {
+                bricks[c][r] = { x: 0, y: 0, status: 1 };
+            }
+        }
+
+        // Power-ups
+        const powerUps = [];
+        const powerUpTypes = [
+            { emoji: '⚡', effect: 'speed' },
+            { emoji: '📏', effect: 'size' }
+        ];
+
+        // Keyboard controls
+        let rightPressed = false;
+        let leftPressed = false;
+
+        document.addEventListener('keydown', keyDownHandler);
+        document.addEventListener('keyup', keyUpHandler);
+
+        function keyDownHandler(e) {
+            if (e.key === 'd' || e.key === 'D') rightPressed = true;
+            if (e.key === 'a' || e.key === 'A') leftPressed = true;
+        }
+
+        function keyUpHandler(e) {
+            if (e.key === 'd' || e.key === 'D') rightPressed = false;
+            if (e.key === 'a' || e.key === 'A') leftPressed = false;
+        }
+
+        restartBtn.addEventListener('click', restartGame);
+
+        function drawPaddle() {
+            ctx.fillStyle = '#4a4e69';
+            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+            ctx.font = '22px Arial'; // Scaled from 30px
+            ctx.fillStyle = '#ffd700';
+            ctx.fillText('🐾', paddle.x + paddle.width / 2 - 11, paddle.y + 16);
+        }
+
+        function drawBall() {
+            ctx.font = '22px Arial'; // Scaled from 30px
+            ctx.fillStyle = '#ffd700';
+            ctx.fillText('⭐', ball.x - 11, ball.y + 11);
+        }
+
+        function drawBricks() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    if (bricks[c][r].status === 1) {
+                        const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+                        const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+                        bricks[c][r].x = brickX;
+                        bricks[c][r].y = brickY;
+                        ctx.fillStyle = '#6b728e';
+                        ctx.fillRect(brickX, brickY, brickWidth, brickHeight);
+                        ctx.font = '22px Arial'; // Scaled from 30px
+                        ctx.fillStyle = '#e0e0e0';
+                        ctx.fillText('🪨', brickX + brickWidth / 2 - 11, brickY + 16);
+                    }
+                }
+            }
+        }
+
+        function drawPowerUps() {
+            powerUps.forEach((powerUp, index) => {
+                ctx.font = '22px Arial'; // Scaled from 30px
+                ctx.fillStyle = '#ff6f61';
+                ctx.fillText(powerUp.emoji, powerUp.x - 11, powerUp.y + 11);
+                powerUp.y += 2; // Scaled from 3
+                if (powerUp.y > canvas.height) {
+                    powerUps.splice(index, 1);
+                }
+            });
+        }
+
+        function movePaddle() {
+            paddle.dx = 0;
+            if (rightPressed && paddle.x < canvas.width - paddle.width) paddle.dx = paddle.speed;
+            if (leftPressed && paddle.x > 0) paddle.dx = -paddle.speed;
+            paddle.x += paddle.dx;
+        }
+
+        function moveBall() {
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Wall collision
+            if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) ball.dx *= -1;
+            if (ball.y - ball.radius < 0) ball.dy *= -1;
+            if (ball.y + ball.radius > canvas.height) {
+                gameRunning = false;
+                showGameOver();
+            }
+
+            // Paddle collision
+            if (
+                ball.y + ball.radius > paddle.y &&
+                ball.y - ball.radius < paddle.y + paddle.height &&
+                ball.x > paddle.x &&
+                ball.x < paddle.x + paddle.width
+            ) {
+                ball.dy *= -1;
+            }
+
+            // Brick collision
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    const b = bricks[c][r];
+                    if (b.status === 1) {
+                        if (
+                            ball.x > b.x &&
+                            ball.x < b.x + brickWidth &&
+                            ball.y > b.y &&
+                            ball.y < b.y + brickHeight
+                        ) {
+                            ball.dy *= -1;
+                            b.status = 0;
+                            score += 10;
+                            updateScore();
+                            if (Math.random() < 0.2) {
+                                const powerUp = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+                                powerUps.push({ x: b.x + brickWidth / 2, y: b.y, emoji: powerUp.emoji, effect: powerUp.effect });
+                            }
+                            if (checkWin()) {
+                                gameRunning = false;
+                                showGameOver(true);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function checkPowerUpCollision() {
+            powerUps.forEach((powerUp, index) => {
+                if (
+                    powerUp.y + 22 > paddle.y && // Adjusted from 30
+                    powerUp.y < paddle.y + paddle.height &&
+                    powerUp.x > paddle.x &&
+                    powerUp.x < paddle.x + paddle.width
+                ) {
+                    powerUps.splice(index, 1);
+                    if (powerUp.effect === 'speed') {
+                        ball.speed += 1.5; // Scaled from 2
+                        ball.dx = Math.sign(ball.dx) * ball.speed;
+                        ball.dy = Math.sign(ball.dy) * ball.speed;
+                    } else if (powerUp.effect === 'size') {
+                        paddle.width += 22; // Scaled from 30
+                    }
+                    score += 50;
+                    updateScore();
+                }
+            });
+        }
+
+        function updateScore() {
+            scoreDisplay.textContent = `Stardust: ${score}`;
+        }
+
+        function checkWin() {
+            return bricks.every(col => col.every(brick => brick.status === 0));
+        }
+
+        function showGameOver(win = false) {
+            gameOverScreen.style.display = 'block';
+            finalScoreDisplay.textContent = score;
+            if (win) {
+                gameOverScreen.querySelector('h2').textContent = 'Victory!';
+            }
+        }
+
+        function restartGame() {
+            gameOverScreen.style.display = 'none';
+            score = 0;
+            updateScore();
+            paddle.x = canvas.width / 2 - 55;
+            paddle.width = 110;
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height - 67;
+            ball.dx = 5;
+            ball.dy = -5;
+            ball.speed = 5;
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    bricks[c][r].status = 1;
+                }
+            }
+            powerUps.length = 0;
+            gameRunning = true;
+            gameLoop();
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawPaddle();
+            drawBall();
+            drawBricks();
+            drawPowerUps();
+
+            movePaddle();
+            moveBall();
+            checkPowerUpCollision();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>

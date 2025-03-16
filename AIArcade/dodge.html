@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cosmic Courier - Improved Prototype</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e;
+            font-family: 'Courier New', Courier, monospace;
+            color: #00ffcc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #ui {
+            position: absolute;
+            top: 8px; /* Scaled from 10px */
+            left: 8px;
+            font-size: 18px; /* Scaled from 24px */
+            text-shadow: 0 0 5px #00ffcc;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: none;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px; /* Scaled from 20px */
+            border: 2px solid #ff007f;
+            border-radius: 8px; /* Scaled from 10px */
+            box-shadow: 0 0 12px #00ffcc; /* Scaled from 15px */
+        }
+        #gameOver h1 {
+            font-size: 48px; /* Scaled from 64px */
+            margin: 0;
+            color: #ff007f;
+            text-shadow: 0 0 8px #ff007f; /* Scaled from 10px */
+        }
+        #gameOver p {
+            font-size: 24px; /* Scaled from 32px */
+            margin: 8px 0; /* Scaled from 10px */
+            color: #00ffcc;
+            text-shadow: 0 0 5px #00ffcc;
+        }
+        #restartBtn {
+            padding: 11px 22px; /* Scaled from 15px 30px */
+            font-size: 18px; /* Scaled from 24px */
+            background: #ff007f;
+            color: #fff;
+            border: 2px solid #00ffcc;
+            border-radius: 5px;
+            cursor: pointer;
+            text-shadow: 0 0 5px #00ffcc;
+            transition: all 0.3s ease;
+        }
+        #restartBtn:hover {
+            background: #00ffcc;
+            color: #ff007f;
+            text-shadow: 0 0 5px #ff007f;
+            box-shadow: 0 0 10px #00ffcc;
+        }
+    </style>
+</head>
+<body>
+    <div class="arcade-game" id="gameContainer">
+        <canvas id="gameCanvas" width="590" height="590"></canvas>
+        <div id="ui">
+            <div>Score: <span id="score">0</span></div>
+            <div>Power-Up: <span id="powerUpTime">0</span>s</div>
+        </div>
+        <div id="gameOver">
+            <h1>Game Over</h1>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <button id="restartBtn">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const powerUpTimeEl = document.getElementById('powerUpTime');
+        const gameOverEl = document.getElementById('gameOver');
+        const finalScoreEl = document.getElementById('finalScore');
+        const restartBtn = document.getElementById('restartBtn');
+
+        let game = {
+            score: 0,
+            powerUpTime: 0,
+            isGameOver: false,
+            speed: 2.2 // Scaled from 3 (590/800 ratio)
+        };
+
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height - 55, // Scaled from 75
+            size: 37,             // Scaled from 50
+            speed: 5              // Scaled from 7
+        };
+
+        let obstacles = [];
+        let bullets = [];
+        let explosions = [];
+        const obstacleTypes = ['🪨', '🛸', '☁️'];
+        const powerUp = '📦';
+
+        let keys = { w: false, a: false, s: false, d: false, space: false };
+
+        function spawnObstacle() {
+            const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+            const size = type === '☁️' ? 66 : 44; // Scaled from 90 and 60
+            obstacles.push({
+                x: Math.random() * (canvas.width - size),
+                y: -size,
+                type: type,
+                size: size,
+                speed: game.speed + (type === '🛸' ? 1.1 : 0) // Scaled from 1.5
+            });
+        }
+
+        function spawnPowerUp() {
+            obstacles.push({
+                x: Math.random() * (canvas.width - 37),
+                y: -37, // Scaled from 50
+                type: powerUp,
+                size: 37, // Scaled from 50
+                speed: game.speed
+            });
+        }
+
+        function movePlayer() {
+            if (keys.w && player.y > 0) player.y -= player.speed;
+            if (keys.s && player.y < canvas.height - player.size) player.y += player.speed;
+            if (keys.a && player.x > 0) player.x -= player.speed;
+            if (keys.d && player.x < canvas.width - player.size) player.x += player.speed;
+        }
+
+        function shoot() {
+            if (game.powerUpTime > 0 && keys.space) {
+                bullets.push({
+                    x: player.x + player.size / 2 - 7, // Scaled from 10
+                    y: player.y - 11, // Scaled from 15
+                    size: 22, // Scaled from 30
+                    speed: 9 // Scaled from 12
+                });
+                keys.space = false;
+            }
+        }
+
+        function updateGame() {
+            if (game.isGameOver) return;
+
+            // Move obstacles
+            obstacles.forEach((ob, i) => {
+                ob.y += ob.speed;
+                if (ob.y > canvas.height) obstacles.splice(i, 1);
+            });
+
+            // Move bullets
+            bullets.forEach((b, i) => {
+                b.y -= b.speed;
+                if (b.y < 0) bullets.splice(i, 1);
+            });
+
+            // Update explosions
+            explosions.forEach((exp, i) => {
+                exp.timer -= 1 / 60;
+                if (exp.timer <= 0) explosions.splice(i, 1);
+            });
+
+            // Collision detection
+            obstacles.forEach((ob, i) => {
+                const padding = ob.type === '☁️' ? 0.6 : 0.8;
+                if (ob.type === powerUp) {
+                    if (checkCollision(player, ob, padding)) {
+                        game.powerUpTime = 10;
+                        obstacles.splice(i, 1);
+                    }
+                } else if (checkCollision(player, ob, padding)) {
+                    endGame();
+                }
+            });
+
+            bullets.forEach((b, bi) => {
+                obstacles.forEach((ob, oi) => {
+                    const padding = ob.type === '☁️' ? 0.6 : 0.8;
+                    if (ob.type !== powerUp && checkCollision(b, ob, padding)) {
+                        obstacles.splice(oi, 1);
+                        bullets.splice(bi, 1);
+                        game.score += 10;
+                        explosions.push({ x: ob.x, y: ob.y, timer: 0.3 });
+                    }
+                });
+            });
+
+            // Update power-up timer
+            if (game.powerUpTime > 0) {
+                game.powerUpTime -= 1 / 60;
+                if (game.powerUpTime <= 0) game.powerUpTime = 0;
+            }
+
+            // Increase difficulty
+            game.speed += 0.001;
+            game.score += 0.1;
+        }
+
+        function checkCollision(a, b, padding = 1) {
+            const aWidth = a.size * padding;
+            const aHeight = a.size * padding;
+            const bWidth = b.size * padding;
+            const bHeight = b.size * padding;
+            return a.x < b.x + bWidth && a.x + aWidth > b.x && a.y < b.y + bHeight && a.y + aHeight > b.y;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw player
+            ctx.font = `${player.size}px Arial`;
+            ctx.fillText('🚀', player.x, player.y);
+
+            // Draw obstacles
+            obstacles.forEach(ob => {
+                ctx.font = `${ob.size}px Arial`;
+                ctx.fillText(ob.type, ob.x, ob.y);
+            });
+
+            // Draw bullets
+            bullets.forEach(b => {
+                ctx.font = `${b.size}px Arial`;
+                ctx.fillText('💥', b.x, b.y);
+            });
+
+            // Draw explosions
+            explosions.forEach(exp => {
+                ctx.font = '37px Arial'; // Scaled from 50px
+                ctx.fillText('💥', exp.x, exp.y);
+            });
+
+            // Update UI
+            scoreEl.textContent = Math.floor(game.score);
+            powerUpTimeEl.textContent = Math.max(0, Math.floor(game.powerUpTime));
+        }
+
+        function endGame() {
+            game.isGameOver = true;
+            gameOverEl.style.display = 'block';
+            finalScoreEl.textContent = Math.floor(game.score);
+        }
+
+        function resetGame() {
+            game = { score: 0, powerUpTime: 0, isGameOver: false, speed: 2.2 };
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 55;
+            obstacles = [];
+            bullets = [];
+            explosions = [];
+            gameOverEl.style.display = 'none';
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', e => {
+            if (e.key === 'w') keys.w = true;
+            if (e.key === 'a') keys.a = true;
+            if (e.key === 's') keys.s = true;
+            if (e.key === 'd') keys.d = true;
+            if (e.key === ' ') keys.space = true;
+        });
+
+        document.addEventListener('keyup', e => {
+            if (e.key === 'w') keys.w = false;
+            if (e.key === 'a') keys.a = false;
+            if (e.key === 's') keys.s = false;
+            if (e.key === 'd') keys.d = false;
+            if (e.key === ' ') keys.space = false;
+        });
+
+        restartBtn.addEventListener('click', () => {
+            resetGame();
+            gameLoop();
+        });
+
+        // Game loop
+        function gameLoop() {
+            if (!game.isGameOver) {
+                movePlayer();
+                shoot();
+                updateGame();
+                draw();
+                if (Math.random() < 0.02) spawnObstacle();
+                if (Math.random() < 0.005) spawnPowerUp();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Start game
+        gameLoop();
+    </script>
+</body>
+</html>
