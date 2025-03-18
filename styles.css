@@ -12,7 +12,7 @@ body {
 }
 
 .container {
-    max-width: 1800px; /* Increased from 1600px for maximum screen real estate */
+    max-width: 1800px; /* Increased from 1600px per your request */
     margin: 0 auto;
     padding: 20px; /* Retain padding for overall layout spacing */
     text-align: center;
