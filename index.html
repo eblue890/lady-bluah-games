@@ -24,7 +24,6 @@
                         <a href="https://simmer.io/@LadyBluahGames/broomstick-blitz" class="play-button" target="_blank">Play Game</a>
                     </div>
                 </div>
-                <!-- Removed the "See All WebGL Builds" button since it pointed to local builds -->
             </div>
         </div>
 
@@ -38,19 +37,21 @@
             </div>
             <div class="game-buttons" id="gameButtons"></div>
         </div>
+
+        <!-- Other Games Section -->
+        <div class="section-wrapper">
+            <div class="section">
+                <h2 style="color: #ff00ff; text-shadow: 0 0 5px #00ffff;">Other Games</h2>
+                <div class="other-games-buttons" id="otherGamesButtons"></div>
+            </div>
+        </div>
     </div>
 
     <script>
+        // AI Games logic (unchanged)
         const aiGames = [
-            { file: 'slot.html', name: 'Slot Machine' },
             { file: 'brickbreak.html', name: 'Brick Break' },
-            { file: 'astro.html', name: 'Astro Adventure' },
-            { file: 'dodge.html', name: 'Dodge' },
-            { file: 'random.html', name: 'Random Game' },
-            { file: 'kaboom.html', name: 'Kaboom' },
-            { file: 'invaders.html', name: 'Invaders' },
-            { file: 'simonsays.html', name: 'Simon Says' },
-            { file: 'snake.html', name: 'Snake' },
+        
             { file: 'catchem.html', name: 'Catch Em' }
         ];
 
@@ -74,6 +75,26 @@
             button.className = 'game-button';
             button.addEventListener('click', () => loadGame(game.file));
             gameButtonsDiv.appendChild(button);
+        });
+
+        // Other Games logic
+        const otherGames = [
+            { name: 'Math Cards', file: 'MathCards.html', tooltip: 'A Dominion-like deck building game with a mathematical twist' },
+            { name: 'Game 2', file: '#', tooltip: 'placeholder1' },
+            { name: 'Game 3', file: '#', tooltip: 'placeholder2' },
+            { name: 'Game 4', file: '#', tooltip: 'placeholder3' }
+        ];
+
+        const otherGamesButtonsDiv = document.getElementById('otherGamesButtons');
+        otherGames.forEach(game => {
+            const button = document.createElement('button');
+            button.textContent = game.name;
+            button.className = 'game-button'; // Reusing game-button class for consistency
+            button.title = game.tooltip; // Tooltip on hover
+            if (game.name === 'Math Cards') {
+                button.addEventListener('click', () => window.location.href = game.file);
+            } // Other buttons do nothing by default (href="#")
+            otherGamesButtonsDiv.appendChild(button);
         });
     </script>
 </body>

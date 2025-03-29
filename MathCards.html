@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Card Game Prototype</title>
+    <style>
+        /* Reset and full-screen layout */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Start screen */
+        #start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Players containers */
+        .players-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* Player areas */
+        .player-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            border: 2px solid transparent;
+        }
+        .player-area.active {
+            border: 2px solid red;
+        }
+        .hand {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-height: 150px;
+            overflow-x: auto;
+        }
+
+        /* Center area (Market and Play Area) */
+        .center-area {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background-color: #fff;
+        }
+        .market {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-height: 50%;
+            overflow-y: auto;
+        }
+        .play-area {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .equation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .phase-buttons {
+            margin-top: 10px;
+        }
+        .phase-buttons button {
+            padding: 5px 10px;
+            margin: 5px;
+            background-color: #e0e0e0;
+            border: 1px solid #bdbdbd;
+            cursor: pointer;
+        }
+        .phase-buttons button:hover {
+            background-color: #bdbdbd;
+        }
+        .phase-buttons .current-phase {
+            background-color: #ffeb3b;
+            border: 2px solid #fbc02d;
+            color: #000;
+        }
+
+        /* Card styling */
+        .card {
+            border: 1px solid #000;
+            padding: 5px;
+            margin: 3px;
+            text-align: center;
+            min-width: 40px;
+            min-height: 40px;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+        .card:hover {
+            transform: scale(1.05);
+            transition: transform 0.2s;
+        }
+        .number-card { background-color: #fff59d; }
+        .operation-card { background-color: #ffcc80; }
+        .special-card { background-color: #ce93d8; }
+        .action-card { background-color: #ef9a9a; }
+        .market-card {
+            width: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .market-card > div:first-child { font-weight: bold; }
+        .market-card > div:nth-child(2) { font-size: 0.8em; }
+        .market-card > div:nth-child(3) { font-size: 0.8em; }
+
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            border: 1px solid #000;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            z-index: 1000;
+            max-height: 80%;
+            overflow-y: auto;
+            max-width: 400px;
+        }
+        .modal-content { text-align: center; }
+        .modal-content button { margin: 5px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
+</head>
+<body>
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <h1>Card Game</h1>
+        <label for="num-players">Number of Players:</label>
+        <select id="num-players">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+        </select>
+        <button id="start-game">Start Game</button>
+    </div>
+
+    <!-- Left Players Container -->
+    <div id="left-players" class="players-container"></div>
+
+    <!-- Center Area -->
+    <div class="center-area">
+        <h2>Market</h2>
+        <div class="market" id="market"></div>
+        <h2>Play Area</h2>
+        <div class="play-area">
+            <div>Equation: <div class="equation" id="equation"></div></div>
+            <div>Total Math Points: <span id="total">0</span></div>
+            <div>Remaining Math Points: <span id="remaining">0</span></div>
+            <div class="phase-buttons">
+                <button id="action-phase">Action Phase</button>
+                <button id="equation-phase">Equation Phase</button>
+                <button id="buy-phase">Buy Phase</button>
+                <button id="end-turn">End Turn</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Players Container -->
+    <div id="right-players" class="players-container"></div>
+
+    <!-- Modals -->
+    <div id="opponent-modal" class="modal">
+        <div class="modal-content">
+            <p id="opponent-message"></p>
+            <button id="play-opponent-card">Yes, play card</button>
+            <button id="skip-opponent">Skip</button>
+            <div id="select-opponent-card" style="display: none;">
+                <p>Select card to play:</p>
+                <button id="play-minus">−</button>
+                <button id="play-divide">÷</button>
+            </div>
+            <div id="select-operation" style="display: none;">
+                <p>Select an operation to replace:</p>
+                <div id="operation-options"></div>
+            </div>
+        </div>
+    </div>
+    <div id="trash-modal" class="modal">
+        <div class="modal-content">
+            <p>Select up to 4 cards to trash:</p>
+            <div id="trash-selection"></div>
+            <button id="finalize-trash">Finalize</button>
+        </div>
+    </div>
+    <div id="win-modal" class="modal">
+        <div class="modal-content">
+            <p id="win-message"></p>
+            <button id="close-win-modal">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Market Cards
+        const marketCards = [
+            { name: "1", type: "number", cost: 1, quantity: 60 },
+            { name: "2", type: "number", cost: 2, quantity: 60 },
+            { name: "3", type: "number", cost: 4, quantity: 60 },
+            { name: "4", type: "number", cost: 6, quantity: 60 },
+            { name: "5", type: "number", cost: 8, quantity: 60 },
+            { name: "6", type: "number", cost: 10, quantity: 60 },
+            { name: "7", type: "number", cost: 12, quantity: 60 },
+            { name: "8", type: "number", cost: 14, quantity: 60 },
+            { name: "9", type: "number", cost: 16, quantity: 60 },
+            { name: "10", type: "number", cost: 20, quantity: 60 },
+            { name: "11", type: "number", cost: 25, quantity: 60 },
+            { name: "12", type: "number", cost: 30, quantity: 60 },
+            { name: "+", type: "operation", cost: 1, quantity: 60 },
+            { name: "*", type: "operation", cost: 5, quantity: 60 },
+            { name: "−", type: "operation", cost: 10, quantity: 60, effect: "Change one of your opponent’s symbols to this" },
+            { name: "÷", type: "operation", cost: 20, quantity: 60, effect: "Change one of your opponent’s symbols to this" },
+            { name: "()", type: "special", cost: 15, quantity: 60 },
+            { name: "Eraser", type: "action", cost: 2, quantity: 60, effect: "Trash up to 4 cards from your hand" },
+            { name: "Pencil", type: "action", cost: 3, quantity: 60, effect: "Draw a card" },
+            { name: "Mechanical Pencil", type: "action", cost: 6, quantity: 60, effect: "Draw 3 cards" },
+            { name: "Calculator", type: "action", cost: 5, quantity: 60, effect: "Draw 5 cards, then discard 4 cards" },
+            { name: "Extra Credit", type: "action", cost: 7, quantity: 60, effect: "At the end of your turn, draw 8 cards instead of 5" }
+        ];
+
+        // Game State
+        let players = [];
+        let currentPlayerIndex = 0;
+        let currentPlayer;
+        let currentPhase = "action";
+        let playArea = [];
+        let totalMathPoints = 0;
+        let remainingMathPoints = 0;
+        let drawAmount = 5;
+
+        // Utility Functions
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function drawCards(player, num) {
+            let drawn = [];
+            while (drawn.length < num && (player.drawPile.length > 0 || player.discardPile.length > 0)) {
+                if (player.drawPile.length === 0) {
+                    player.drawPile = shuffle(player.discardPile);
+                    player.discardPile = [];
+                }
+                let card = player.drawPile.shift();
+                if (card === "()") {
+                    drawn.push("(", ")");
+                } else {
+                    drawn.push(card);
+                }
+            }
+            player.hand.push(...drawn);
+            updateUI();
+        }
+
+        function generateMarket() {
+            const marketDiv = document.getElementById("market");
+            marketDiv.innerHTML = marketCards.map(card => {
+                const title = card.type === "action" ? `title="${card.effect}"` : '';
+                return `<div class="card market-card ${card.type}-card" data-name="${card.name}" ${title}>
+                    <div>${card.name}</div>
+                    <div>Cost: ${card.cost}</div>
+                    <div>${card.quantity}</div>
+                </div>`;
+            }).join("");
+        }
+
+        function getCardType(cardName) {
+            if (cardName === "(" || cardName === ")") return "operation";
+            const card = marketCards.find(c => c.name === cardName);
+            return card ? card.type : null;
+        }
+
+        // Start Game
+        document.getElementById("start-game").addEventListener("click", () => {
+            const numPlayers = parseInt(document.getElementById("num-players").value);
+            document.getElementById("start-screen").style.display = "none";
+
+            const leftPlayersDiv = document.getElementById("left-players");
+            const rightPlayersDiv = document.getElementById("right-players");
+            leftPlayersDiv.innerHTML = "";
+            rightPlayersDiv.innerHTML = "";
+
+            const colors = ["#e0f7fa", "#e8f5e9", "#fff59d", "#ce93d8", "#ffcc80", "#ef9a9a"];
+            for (let i = 1; i <= numPlayers; i++) {
+                const playerDiv = document.createElement("div");
+                playerDiv.className = "player-area";
+                playerDiv.id = `player-${i}`;
+                playerDiv.style.backgroundColor = colors[(i - 1) % colors.length];
+                playerDiv.innerHTML = `
+                    <h2>Player ${i}</h2>
+                    <div>Draw Pile: <span id="player-${i}-draw">0</span></div>
+                    <div>Discard Pile: <span id="player-${i}-discard">0</span></div>
+                    <div>Trash Pile: <span id="player-${i}-trash">0</span></div>
+                    <div>Hand: <div class="hand" id="player-${i}-hand"></div></div>
+                `;
+                if (i % 2 === 1) {
+                    leftPlayersDiv.appendChild(playerDiv);
+                } else {
+                    rightPlayersDiv.appendChild(playerDiv);
+                }
+            }
+
+            if (rightPlayersDiv.children.length === 0) {
+                rightPlayersDiv.style.display = "none";
+            } else {
+                rightPlayersDiv.style.display = "flex";
+            }
+
+            players = [];
+            for (let i = 0; i < numPlayers; i++) {
+                const player = {
+                    drawPile: shuffle([...Array(5).fill("1"), ...Array(5).fill("+")]),
+                    discardPile: [],
+                    trashPile: [],
+                    hand: [],
+                    turns: 0
+                };
+                drawCards(player, 5);
+                players.push(player);
+            }
+
+            currentPlayerIndex = 0;
+            currentPlayer = players[0];
+            currentPhase = "action";
+            playArea = [];
+            totalMathPoints = 0;
+            remainingMathPoints = 0;
+            drawAmount = 5;
+            updateUI();
+        });
+
+        function updateUI() {
+            for (let i = 0; i < players.length; i++) {
+                const player = players[i];
+                document.getElementById(`player-${i + 1}-draw`).textContent = player.drawPile.length;
+                document.getElementById(`player-${i + 1}-discard`).textContent = player.discardPile.length;
+                document.getElementById(`player-${i + 1}-trash`).textContent = player.trashPile.length;
+                document.getElementById(`player-${i + 1}-hand`).innerHTML = player.hand.map(card => {
+                    const cardType = getCardType(card);
+                    const cardInfo = marketCards.find(c => c.name === card);
+                    const title = cardInfo && cardInfo.type === "action" ? `title="${cardInfo.effect}"` : '';
+                    return `<div class="card ${cardType}-card" ${title}>${card}</div>`;
+                }).join("");
+            }
+
+            document.getElementById("equation").innerHTML = playArea.map((card, index) => {
+                const cardType = getCardType(card);
+                return `<div class="card ${cardType}-card" data-index="${index}">${card}</div>`;
+            }).join("");
+
+            try {
+                totalMathPoints = math.evaluate(playArea.join(" "));
+                document.getElementById("total").textContent = isFinite(totalMathPoints) ? totalMathPoints : "Invalid";
+                document.getElementById("remaining").textContent = currentPhase === "buy" ? remainingMathPoints : 0;
+                if (isFinite(totalMathPoints) && totalMathPoints >= 100) {
+                    showWinModal(`Player ${currentPlayerIndex + 1}`, players[currentPlayerIndex].turns);
+                }
+            } catch (e) {
+                document.getElementById("total").textContent = "Invalid";
+                document.getElementById("remaining").textContent = 0;
+            }
+
+            document.querySelectorAll(".player-area").forEach(div => div.classList.remove("active"));
+            document.getElementById(`player-${currentPlayerIndex + 1}`).classList.add("active");
+
+            document.querySelectorAll(".phase-buttons button").forEach(btn => btn.classList.remove("current-phase"));
+            document.getElementById(currentPhase + "-phase").classList.add("current-phase");
+
+            generateMarket();
+        }
+
+        // Event Listeners
+        document.addEventListener("click", (e) => {
+            const target = e.target;
+            if (target.classList.contains("card") && target.parentElement.classList.contains("hand")) {
+                if (target.parentElement.id !== `player-${currentPlayerIndex + 1}-hand`) return;
+                const cardName = target.textContent;
+                const cardType = getCardType(cardName);
+                if (currentPhase === "action" && cardType === "action") {
+                    playActionCard(cardName);
+                } else if (currentPhase === "equation" && (cardType === "number" || cardType === "operation")) {
+                    const index = currentPlayer.hand.indexOf(cardName);
+                    if (index !== -1) {
+                        currentPlayer.hand.splice(index, 1);
+                        playArea.push(cardName);
+                        updateUI();
+                    }
+                }
+            }
+
+            if (target.classList.contains("card") && target.parentElement.id === "equation") {
+                if (currentPhase === "equation") {
+                    const index = parseInt(target.dataset.index);
+                    const card = playArea.splice(index, 1)[0];
+                    currentPlayer.hand.push(card);
+                    updateUI();
+                }
+            }
+
+            const marketCard = target.closest(".market-card");
+            if (marketCard && currentPhase === "buy") {
+                const cardName = marketCard.dataset.name;
+                buyCard(cardName);
+            }
+        });
+
+        document.getElementById("action-phase").addEventListener("click", () => {
+            currentPhase = "action";
+            updateUI();
+        });
+        document.getElementById("equation-phase").addEventListener("click", () => {
+            currentPhase = "equation";
+            updateUI();
+        });
+        document.getElementById("buy-phase").addEventListener("click", enterBuyPhase);
+        document.getElementById("end-turn").addEventListener("click", endTurn);
+
+        function playActionCard(cardName) {
+            const index = currentPlayer.hand.indexOf(cardName);
+            if (index === -1) return;
+            currentPlayer.hand.splice(index, 1);
+
+            switch (cardName) {
+                case "Pencil":
+                    drawCards(currentPlayer, 1);
+                    break;
+                case "Mechanical Pencil":
+                    drawCards(currentPlayer, 3);
+                    break;
+                case "Eraser":
+                    showTrashModal(currentPlayer);
+                    break;
+                case "Calculator":
+                    drawCards(currentPlayer, 5);
+                    showDiscardModal(currentPlayer, 4);
+                    break;
+                case "Extra Credit":
+                    drawAmount = 8;
+                    updateUI();
+                    break;
+            }
+            currentPlayer.discardPile.push(cardName);
+        }
+
+        function showTrashModal(player) {
+            const modal = document.getElementById("trash-modal");
+            const selectionDiv = document.getElementById("trash-selection");
+            selectionDiv.innerHTML = player.hand.map((card, i) => {
+                const cardType = getCardType(card);
+                return `<label><input type="checkbox" data-index="${i}"><div class="card ${cardType}-card">${card}</div></label>`;
+            }).join("");
+            modal.style.display = "block";
+
+            document.getElementById("finalize-trash").onclick = () => {
+                const selected = Array.from(selectionDiv.querySelectorAll("input:checked"))
+                    .map(input => parseInt(input.dataset.index))
+                    .sort((a, b) => b - a);
+                if (selected.length > 4) {
+                    alert("You can only trash up to 4 cards.");
+                    return;
+                }
+                selected.forEach(i => player.trashPile.push(player.hand.splice(i, 1)[0]));
+                modal.style.display = "none";
+                updateUI();
+            };
+        }
+
+        function showDiscardModal(player, num) {
+            const modal = document.getElementById("trash-modal");
+            const selectionDiv = document.getElementById("trash-selection");
+            selectionDiv.innerHTML = player.hand.map((card, i) => {
+                const cardType = getCardType(card);
+                return `<label><input type="checkbox" data-index="${i}"><div class="card ${cardType}-card">${card}</div></label>`;
+            }).join("");
+            modal.querySelector("p").textContent = `Select ${num} cards to discard:`;
+            modal.style.display = "block";
+
+            document.getElementById("finalize-trash").onclick = () => {
+                const selected = Array.from(selectionDiv.querySelectorAll("input:checked"))
+                    .map(input => parseInt(input.dataset.index))
+                    .sort((a, b) => b - a);
+                if (selected.length !== num) {
+                    alert(`You must discard exactly ${num} cards.`);
+                    return;
+                }
+                selected.forEach(i => player.discardPile.push(player.hand.splice(i, 1)[0]));
+                modal.style.display = "none";
+                updateUI();
+            };
+        }
+
+        function enterBuyPhase() {
+            currentPhase = "buy";
+            remainingMathPoints = totalMathPoints;
+            const opponentIndex = (currentPlayerIndex + 1) % players.length;
+            const opponent = players[opponentIndex];
+            if (opponent.hand.includes("−") || opponent.hand.includes("÷")) {
+                showOpponentModal(opponent, opponentIndex);
+            } else {
+                updateUI();
+            }
+        }
+
+        function showOpponentModal(opponent, opponentIndex) {
+            const modal = document.getElementById("opponent-modal");
+            document.getElementById("opponent-message").textContent = `Player ${opponentIndex + 1}, play your − or ÷ card?`;
+            modal.style.display = "block";
+
+            document.getElementById("play-opponent-card").onclick = () => {
+                document.getElementById("select-opponent-card").style.display = "block";
+            };
+            document.getElementById("skip-opponent").onclick = () => {
+                modal.style.display = "none";
+                updateUI();
+            };
+            document.getElementById("play-minus").onclick = () => playOpponentCard(opponent, "−");
+            document.getElementById("play-divide").onclick = () => playOpponentCard(opponent, "÷");
+        }
+
+        function playOpponentCard(opponent, card) {
+            const index = opponent.hand.indexOf(card);
+            if (index !== -1) opponent.hand.splice(index, 1);
+            document.getElementById("select-opponent-card").style.display = "none";
+            document.getElementById("select-operation").style.display = "block";
+
+            const operations = playArea.map((c, i) => ["+", "*", "−", "÷"].includes(c) ? { card: c, index: i } : null).filter(Boolean);
+            document.getElementById("operation-options").innerHTML = operations.map(op => `
+                <button data-index="${op.index}">${op.card}</button>
+            `).join("");
+
+            document.getElementById("operation-options").querySelectorAll("button").forEach(btn => {
+                btn.onclick = () => {
+                    playArea[parseInt(btn.dataset.index)] = card;
+                    document.getElementById("opponent-modal").style.display = "none";
+                    updateUI();
+                };
+            });
+        }
+
+        function buyCard(cardName) {
+            const card = marketCards.find(c => c.name === cardName);
+            if (card && card.quantity > 0 && remainingMathPoints >= card.cost) {
+                remainingMathPoints -= card.cost;
+                currentPlayer.discardPile.push(cardName);
+                card.quantity--;
+                updateUI();
+            }
+        }
+
+        function endTurn() {
+            let cardsToDiscard = [...playArea, ...currentPlayer.hand];
+            let leftCount = cardsToDiscard.filter(c => c === "(").length;
+            let rightCount = cardsToDiscard.filter(c => c === ")").length;
+            let pairs = Math.min(leftCount, rightCount);
+            let nonParenCards = cardsToDiscard.filter(c => c !== "(" && c !== ")");
+            let extraLeft = cardsToDiscard.filter(c => c === "(").slice(pairs);
+            let extraRight = cardsToDiscard.filter(c => c === ")").slice(pairs);
+            currentPlayer.discardPile.push(...Array(pairs).fill("()"), ...nonParenCards, ...extraLeft, ...extraRight);
+            currentPlayer.hand = [];
+            playArea = [];
+            drawCards(currentPlayer, drawAmount);
+            drawAmount = 5;
+            currentPlayer.turns++;
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            currentPlayer = players[currentPlayerIndex];
+            currentPhase = "action";
+            updateUI();
+        }
+
+        function showWinModal(winner, turns) {
+            const modal = document.getElementById("win-modal");
+            document.getElementById("win-message").textContent = `${winner} won in ${turns} turns!`;
+            modal.style.display = "block";
+            document.getElementById("close-win-modal").onclick = () => {
+                modal.style.display = "none";
+            };
+        }
+    </script>
+</body>
+</html>

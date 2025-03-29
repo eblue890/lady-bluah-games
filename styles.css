@@ -196,6 +196,14 @@ body {
     box-shadow: 0 0 10px #00ffcc;
 }
 
+.other-games-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 200px; /* Slightly wider than game-buttons for consistency */
+    margin-top: 20px;
+}
+
 @keyframes neon-flicker {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.8; }
